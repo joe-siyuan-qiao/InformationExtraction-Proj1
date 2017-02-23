@@ -56,9 +56,11 @@ class model:
         '''
         Reestimate the parameter
         '''
-        pass
+        self.forward()
+        self.backward()
+        self.calcpost()
 
-    def forward():
+    def forward(self):
         # initial state
         for i in range(self.state_num):
             self.trellis[0].node[i].alpha = 1.0 / self.state_num
@@ -78,7 +80,7 @@ class model:
             for state_idx in range(self.state_num):
                 self.trellis[data_idx].node[state_idx].alpha /= acc_alpha
 
-    def backward():
+    def backward(self):
         # initial state
         for i in range(self.state_num):
             self.trellis[-1].node[i].beta = 1.0 / self.trellis[-1].norm
@@ -91,6 +93,18 @@ class model:
                         * self.trellis[data_idx + 1].node[old_idx].beta
                 acc_beta /= self.trellis[data_idx].norm
                 self.trellis[data_idx].node[state_idx].beta = acc_beta
+
+    def calcpost(self):
+        for data_idx in range(self.data_len):
+            for left_idx in range(self.state_num):
+                for right_idx in range(self.state_num):
+                    alpha = self.trellis[data_idx].node[left_idx].alpha
+                    trans = self.trans_mat[left_idx][right_idx]
+                    emiss = self.emiss_mat[right_idx][self.data[data_idx + 1]]
+                    beta = self.trellis[data_idx + 1].node[right_idx].beta
+                    prod = alpha * trans * emiss * beta
+                    self.trellis[data_idx].post[left_idx][right_idx] = prod
+
 
 class __object__:
     pass
