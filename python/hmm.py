@@ -68,7 +68,7 @@ class model:
                 acc_alpha = 0.0
                 for old_idx in range(self.state_num):
                     acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx]
-                        * self.emiss_mat[old_idx][self.data[data_idx]]
+                        * self.emiss_mat[old_idx][self.data[data_idx] - 1]
                         * self.trellis[data_idx - 1].node[old_idx].alpha
                 self.trellis[data_idx].node[state_idx].alpha = acc_alpha
             acc_alpha = 0.0
@@ -78,6 +78,19 @@ class model:
             for state_idx in range(self.state_num):
                 self.trellis[data_idx].node[state_idx].alpha /= acc_alpha
 
+    def backward():
+        # initial state
+        for i in range(self.state_num):
+            self.trellis[-1].node[i].beta = 1.0 / self.trellis[-1].norm
+        for data_idx in range(self.data_len - 1, -1, -1):
+            for state_idx in range(self.state_num):
+                acc_beta = 0.0
+                for old_idx in range(self.state_num):
+                    acc_beta = acc_beta + self.trans_mat[state_idx][old_idx]
+                        * self.emiss_mat[old_idx][self.data[data_idx + 1] - 1]
+                        * self.trellis[data_idx + 1].node[old_idx].beta
+                acc_beta /= self.trellis[data_idx].norm
+                self.trellis[data_idx].node[state_idx].beta = acc_beta
 
 class __object__:
     pass
