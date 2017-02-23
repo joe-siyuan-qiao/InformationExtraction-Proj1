@@ -45,11 +45,38 @@ class model:
             self.trellis[-1].node = []
             self.trellis[-1].norm = 1.0
             self.trellis[-1].post = [
-                [0 for i in range(self.state_num)] for j in self.state_num]
+                [0 for i in range(self.state_num)]
+                for j in range(self.state_num)]
             for state_idx in range(self.state_num):
                 self.trellis[-1].node.append(__object__())
                 self.trellis[-1].node[-1].alpha = 0.0
                 self.trellis[-1].node[-1].beta = 0.0
+
+    def train(self):
+        '''
+        Reestimate the parameter
+        '''
+        pass
+
+    def forward():
+        # initial state
+        for i in range(self.state_num):
+            self.trellis[0].node[i].alpha = 1.0 / self.state_num
+        # forwarding
+        for data_idx in range(1, self.data_len + 1):
+            for state_idx in range(self.state_num):
+                acc_alpha = 0.0
+                for old_idx in range(self.state_num):
+                    acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx]
+                        * self.emiss_mat[old_idx][self.data[data_idx]]
+                        * self.trellis[data_idx - 1].node[old_idx].alpha
+                self.trellis[data_idx].node[state_idx].alpha = acc_alpha
+            acc_alpha = 0.0
+            for state_idx in range(self.state_num):
+                acc_alpha += self.trellis[data_idx].node[state_idx].alpha
+            self.trellis[data_idx].norm = acc_alpha
+            for state_idx in range(self.state_num):
+                self.trellis[data_idx].node[state_idx].alpha /= acc_alpha
 
 
 class __object__:
