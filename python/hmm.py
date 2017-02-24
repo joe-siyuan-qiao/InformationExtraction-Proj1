@@ -2,6 +2,7 @@
 The implementation of the hidden markov model
 """
 
+from copy import deepcopy
 
 class model:
 
@@ -17,8 +18,11 @@ class model:
             initial emission matrix
         '''
         self.trans_mat = init_trans_mat
-        self.emiss_mat = init_emiss_mat
+        # self.emiss_mat = init_emiss_mat
         self.state_num = len(self.trans_mat)
+        self.emiss_mat = []
+        for i in range(self.state_num):
+            self.emiss_mat.append(deepcopy(init_emiss_mat))
 
     def read(self, filename):
         '''
@@ -59,7 +63,7 @@ class model:
         '''
         self.forward()
         self.backward()
-        self.calcpost()
+        self.update()
 
     def forward(self):
         # initial state
@@ -71,7 +75,7 @@ class model:
                 acc_alpha = 0.0
                 for old_idx in range(self.state_num):
                     acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx]*\
-                        self.emiss_mat[state_idx][self.data[data_idx] - 1]*\
+                        self.emiss_mat[old_idx][state_idx][self.data[data_idx] - 1]*\
                         self.trellis[data_idx - 1].node[old_idx].alpha
                 self.trellis[data_idx].node[state_idx].alpha = acc_alpha
             acc_alpha = 0.0
@@ -90,22 +94,49 @@ class model:
                 acc_beta = 0.0
                 for old_idx in range(self.state_num):
                     acc_beta = acc_beta + self.trans_mat[state_idx][old_idx]*\
-                        self.emiss_mat[old_idx][self.data[data_idx + 1] - 1]*\
+                        self.emiss_mat[state_idx][old_idx][self.data[data_idx + 1] - 1]*\
                         self.trellis[data_idx + 1].node[old_idx].beta
                 acc_beta /= self.trellis[data_idx].norm
                 self.trellis[data_idx].node[state_idx].beta = acc_beta
 
-    def calcpost(self):
+    def update(self):
         for data_idx in range(self.data_len):
             for left_idx in range(self.state_num):
                 for right_idx in range(self.state_num):
                     alpha = self.trellis[data_idx].node[left_idx].alpha
                     trans = self.trans_mat[left_idx][right_idx]
-                    emiss = self.emiss_mat[right_idx][
+                    emiss = self.emiss_mat[left_idx][right_idx][
                                 self.data[data_idx + 1] - 1]
                     beta = self.trellis[data_idx + 1].node[right_idx].beta
                     prod = alpha * trans * emiss * beta
                     self.trellis[data_idx].post[left_idx][right_idx] = prod
+        acc_trans = [[.0 for j in range(self.state_num)]
+                        for i in range(self.state_num)]
+        acc_emiss = [[[.0 for k in range(27)] for j in range(self.state_num)]
+                        for i in range(self.state_num)]
+        for data_idx in range(self.data_len):
+            for left_idx in range(self.state_num):
+                for right_idx in range(self.state_num):
+                    acc_trans[left_idx][right_idx] += self.trellis[
+                            data_idx].post[left_idx][right_idx]
+                    acc_emiss[left_idx][right_idx][self.data[
+                        data_idx] - 1] += self.trellis[
+                            data_idx].post[left_idx][right_idx]
+        for left_idx in range(self.state_num):
+            acc_prob = 0.0
+            for right_idx in range(self.state_num):
+                acc_prob += acc_trans[left_idx][right_idx]
+            for right_idx in range(self.state_num):
+                acc_trans[left_idx][right_idx] /= acc_prob
+        for left_idx in range(self.state_num):
+            for right_idx in range(self.state_num):
+                acc_prob = 0.0
+                for out_idx in range(27):
+                    acc_prob += acc_emiss[left_idx][right_idx][out_idx]
+                for out_idx in range(27):
+                    acc_emiss[left_idx][right_idx][out_idx] /= acc_prob
+        self.trans_mat = acc_trans
+        self.emiss_mat = acc_emiss
 
 
 class __object__:
