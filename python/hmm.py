@@ -38,6 +38,7 @@ class model:
             else:
                 self.data.append(ord(letter) - ord('a') + 1)
         self.data_len = len(self.data)
+        self.data.insert(0, 0)
         # build the model
         self.trellis = []
         for data_idx in range(self.data_len + 1):
@@ -69,9 +70,9 @@ class model:
             for state_idx in range(self.state_num):
                 acc_alpha = 0.0
                 for old_idx in range(self.state_num):
-                    acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx]
-                        * self.emiss_mat[old_idx][self.data[data_idx] - 1]
-                        * self.trellis[data_idx - 1].node[old_idx].alpha
+                    acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx]*\
+                        self.emiss_mat[state_idx][self.data[data_idx] - 1]*\
+                        self.trellis[data_idx - 1].node[old_idx].alpha
                 self.trellis[data_idx].node[state_idx].alpha = acc_alpha
             acc_alpha = 0.0
             for state_idx in range(self.state_num):
@@ -88,9 +89,9 @@ class model:
             for state_idx in range(self.state_num):
                 acc_beta = 0.0
                 for old_idx in range(self.state_num):
-                    acc_beta = acc_beta + self.trans_mat[state_idx][old_idx]
-                        * self.emiss_mat[old_idx][self.data[data_idx + 1] - 1]
-                        * self.trellis[data_idx + 1].node[old_idx].beta
+                    acc_beta = acc_beta + self.trans_mat[state_idx][old_idx]*\
+                        self.emiss_mat[old_idx][self.data[data_idx + 1] - 1]*\
+                        self.trellis[data_idx + 1].node[old_idx].beta
                 acc_beta /= self.trellis[data_idx].norm
                 self.trellis[data_idx].node[state_idx].beta = acc_beta
 
@@ -100,7 +101,8 @@ class model:
                 for right_idx in range(self.state_num):
                     alpha = self.trellis[data_idx].node[left_idx].alpha
                     trans = self.trans_mat[left_idx][right_idx]
-                    emiss = self.emiss_mat[right_idx][self.data[data_idx + 1]]
+                    emiss = self.emiss_mat[right_idx][
+                                self.data[data_idx + 1] - 1]
                     beta = self.trellis[data_idx + 1].node[right_idx].beta
                     prod = alpha * trans * emiss * beta
                     self.trellis[data_idx].post[left_idx][right_idx] = prod
