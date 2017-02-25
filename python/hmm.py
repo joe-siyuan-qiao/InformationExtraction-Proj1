@@ -3,6 +3,8 @@ The implementation of the hidden markov model
 """
 
 from copy import deepcopy
+import math
+
 
 class model:
 
@@ -56,6 +58,16 @@ class model:
                 self.trellis[-1].node[-1].alpha = 0.0
                 self.trellis[-1].node[-1].beta = 0.0
 
+    def eval(self):
+        '''
+        Return the average log-probability of self.data
+        '''
+        self.forward()
+        alpha_sum = 0.0
+        for data_idx in range(self.data_len + 1):
+            alpha_sum += math.log(self.trellis[data_idx].norm)
+        return alpha_sum / self.data_len
+
     def train(self):
         '''
         Reestimate the parameter
@@ -65,6 +77,9 @@ class model:
         self.update()
 
     def forward(self):
+        '''
+        Forward
+        '''
         # initial state
         for i in range(self.state_num):
             self.trellis[0].node[i].alpha = 1.0 / self.state_num
@@ -73,8 +88,8 @@ class model:
             for state_idx in range(self.state_num):
                 acc_alpha = 0.0
                 for old_idx in range(self.state_num):
-                    acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx]*\
-                        self.emiss_mat[state_idx][self.data[data_idx] - 1]*\
+                    acc_alpha = acc_alpha + self.trans_mat[old_idx][state_idx] *\
+                        self.emiss_mat[state_idx][self.data[data_idx] - 1] *\
                         self.trellis[data_idx - 1].node[old_idx].alpha
                 self.trellis[data_idx].node[state_idx].alpha = acc_alpha
             acc_alpha = 0.0
@@ -85,6 +100,9 @@ class model:
                 self.trellis[data_idx].node[state_idx].alpha /= acc_alpha
 
     def backward(self):
+        '''
+        Backword
+        '''
         # initial state
         for i in range(self.state_num):
             self.trellis[-1].node[i].beta = 1.0 / self.trellis[-1].norm
@@ -92,13 +110,16 @@ class model:
             for state_idx in range(self.state_num):
                 acc_beta = 0.0
                 for old_idx in range(self.state_num):
-                    acc_beta = acc_beta + self.trans_mat[state_idx][old_idx]*\
-                        self.emiss_mat[old_idx][self.data[data_idx + 1] - 1]*\
+                    acc_beta = acc_beta + self.trans_mat[state_idx][old_idx] *\
+                        self.emiss_mat[old_idx][self.data[data_idx + 1] - 1] *\
                         self.trellis[data_idx + 1].node[old_idx].beta
                 acc_beta /= self.trellis[data_idx].norm
                 self.trellis[data_idx].node[state_idx].beta = acc_beta
 
     def update(self):
+        '''
+        Update matrix
+        '''
         # update transition matrix
         for data_idx in range(self.data_len):
             for left_idx in range(self.state_num):
@@ -106,17 +127,17 @@ class model:
                     alpha = self.trellis[data_idx].node[left_idx].alpha
                     trans = self.trans_mat[left_idx][right_idx]
                     emiss = self.emiss_mat[right_idx][
-                                self.data[data_idx + 1] - 1]
+                        self.data[data_idx + 1] - 1]
                     beta = self.trellis[data_idx + 1].node[right_idx].beta
                     prod = alpha * trans * emiss * beta
                     self.trellis[data_idx].post[left_idx][right_idx] = prod
         acc_trans = [[.0 for j in range(self.state_num)]
-                        for i in range(self.state_num)]
+                     for i in range(self.state_num)]
         for data_idx in range(self.data_len):
             for left_idx in range(self.state_num):
                 for right_idx in range(self.state_num):
                     acc_trans[left_idx][right_idx] += self.trellis[
-                            data_idx].post[left_idx][right_idx]
+                        data_idx].post[left_idx][right_idx]
         for left_idx in range(self.state_num):
             acc_prob = 0.0
             for right_idx in range(self.state_num):
